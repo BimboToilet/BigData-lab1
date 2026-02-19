@@ -61,9 +61,8 @@ def main():
     SCALER_PATH = os.getenv('SCALER_PATH', '/scaler/scaler.pkl')
 
     logger.info(f"Брокеры: {BOOTSTRAP_SERVERS}")
-    logger.info(f"Источники данных: {INPUT_TOPIC}, Вывод данных: {OUTPUT_TOPIC}")
+    logger.info(f"Источники данных: {INPUT_TOPIC}, вывод данных: {OUTPUT_TOPIC}")
     logger.info(f"Веса масштабирования: {SCALER_PATH}")
-    logger.info(f"Вывод данных: {OUTPUT_TOPIC}")
 
     scaler = load_scaler(SCALER_PATH, logger)
 

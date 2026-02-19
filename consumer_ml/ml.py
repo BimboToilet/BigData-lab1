@@ -31,13 +31,14 @@ def process_message(message_value, model, logger):
 
         label = model.predict(features_row)
         
-        probability = model.predict_proba(features_row)
+        probability = model.predict_proba(features_row)[1]
 
         processed = {
             'timestamp': time.time(),
             'record_id': idx,
             'label': label,
-            'probability': probability
+            'probability': probability,
+            'features': features
         }
 
         return processed
@@ -55,9 +56,8 @@ def main():
     MODEL_PATH = os.getenv('MODEL_PATH', '/model/model.pkl')
 
     logger.info(f"Брокеры: {BOOTSTRAP_SERVERS}")
-    logger.info(f"Источники данных: {INPUT_TOPIC}, Вывод данных: {OUTPUT_TOPIC}")
+    logger.info(f"Источники данных: {INPUT_TOPIC}, вывод данных: {OUTPUT_TOPIC}")
     logger.info(f"Веса модели: {MODEL_PATH}")
-    logger.info(f"Вывод данных: {OUTPUT_TOPIC}")
 
     model = load_model(MODEL_PATH, logger)
 

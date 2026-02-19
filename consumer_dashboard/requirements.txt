@@ -1,5 +1,5 @@
 streamlit
-kafka-python
+kafka
 pandas
 plotly
 numpy
