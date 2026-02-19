@@ -1,0 +1,154 @@
+version: '3.8'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - kafka-network
+
+  kafka-1:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+    networks:
+      - kafka-network
+
+  kafka-2:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+    networks:
+      - kafka-network
+
+  kafka-3:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3:9094
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+    networks:
+      - kafka-network
+
+  producer-1:
+    build: ./producer
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      PRODUCER_ID: 1
+      OUTPUT_TOPIC: raw_data
+      DATASET_PATH: /data/data1.csv
+    volumes:
+      - ./data:/data
+    networks:
+      - kafka-network
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+
+  producer-2:
+    build: ./producer
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      PRODUCER_ID: 2
+      OUTPUT_TOPIC: raw_data
+      DATASET_PATH: /data/data2.csv
+    volumes:
+      - ./data:/data
+    networks:
+      - kafka-network
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+
+  consumer-preprocess:
+    build: ./consumer_preprocess
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      INPUT_TOPIC: raw_data
+      OUTPUT_TOPIC: raw_preprocessed
+      SCALER_PATH: /scaler/scaler.pkl
+    volumes:
+      - ./scaler:/scaler
+    networks:
+      - kafka-network
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+
+  consumer-ml:
+    build: ./consumer_ml
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      MODEL_PATH: /model/model.pkl
+      INPUT_TOPIC: raw_data
+      OUTPUT_TOPIC: ready_data
+    volumes:
+      - ./model:/model
+    networks:
+      - kafka-network
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+
+  consumer-dashboard:
+    build: ./consumer_dashboard
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      INPUT_TOPIC: ready_data
+    networks:
+      - kafka-network
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+    ports:
+      - "8501:8501"   # Streamlit
+
+  # Опционально: сервис для создания топиков с разными параметрами
+  init-kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      "
+      echo 'Waiting for Kafka to be ready...'
+      cub kafka-ready -b kafka-1:9092 1 30
+      # Создаём топики с разными replication factor и min.insync.replicas
+      kafka-topics --bootstrap-server kafka-1:9092 --create --topic raw-data --partitions 3 --replication-factor 3 --config min.insync.replicas=2
+      kafka-topics --bootstrap-server kafka-1:9092 --create --topic processed-data --partitions 3 --replication-factor 3 --config min.insync.replicas=2
+      kafka-topics --bootstrap-server kafka-1:9092 --create --topic predictions --partitions 3 --replication-factor 3 --config min.insync.replicas=2
+      echo 'Topics created.'
+      "
+    networks:
+      - kafka-network
+
+networks:
+  kafka-network:
+    driver: bridge
