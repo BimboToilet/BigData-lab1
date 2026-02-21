@@ -20,8 +20,8 @@ def load_scaler(path, logger):
         logger.error(f"Ошибка при загрузке весов масштаба: {e}")
         raise
 
-def extract_hour(timestamp):
-    dt = datetime.fromtimestamp(timestamp)
+def extract_hour(date_str):
+    dt = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
     return dt.hour
 
 def process_message(message_value, scaler, logger):
@@ -32,11 +32,11 @@ def process_message(message_value, scaler, logger):
         if features is None:
             raise ValueError("Нет признаков")
         
-        features['Hour'] = extract_hour(features['Hour'])
+        features['Hour'] = extract_hour(features['date'])
 
-        features_row = pd.DataFrame([features])
+        features_row = pd.DataFrame([features]).drop(['date'], axis = 1)
 
-        normalized_row = scaler.transform(features_row)
+        normalized_row = pd.DataFrame(scaler.transform(features_row), columns=features_row.columns)
 
         features = normalized_row.to_dict(orient='records')[0]
 

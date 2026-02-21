@@ -2,13 +2,14 @@ services:
   kafka-1:
     image: confluentinc/cp-kafka:latest
     healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      test: ["CMD", "kafka-cluster", "cluster-id", "--bootstrap-server", "localhost:9092"]
       interval: 10s
-      timeout: 5s
-      retries: 10
+      timeout: 10s
+      retries: 5
       start_period: 30s
     environment:
       KAFKA_NODE_ID: 1
+      KAFKA_HEAP_OPTS: "-Xms256M -Xmx256M"
       KAFKA_PROCESS_ROLES: 'broker,controller'
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-1:29093,2@kafka-2:29093,3@kafka-3:29093'
       KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093'
@@ -26,13 +27,14 @@ services:
   kafka-2:
     image: confluentinc/cp-kafka:latest
     healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      test: ["CMD", "kafka-cluster", "cluster-id", "--bootstrap-server", "localhost:9092"]
       interval: 10s
-      timeout: 5s
-      retries: 10
+      timeout: 10s
+      retries: 5
       start_period: 30s
     environment:
       KAFKA_NODE_ID: 2
+      KAFKA_HEAP_OPTS: "-Xms256M -Xmx256M"
       KAFKA_PROCESS_ROLES: 'broker,controller'
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-1:29093,2@kafka-2:29093,3@kafka-3:29093'
       KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093'
@@ -50,13 +52,14 @@ services:
   kafka-3:
     image: confluentinc/cp-kafka:latest
     healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      test: ["CMD", "kafka-cluster", "cluster-id", "--bootstrap-server", "localhost:9092"]
       interval: 10s
-      timeout: 5s
-      retries: 10
+      timeout: 10s
+      retries: 5
       start_period: 30s
     environment:
       KAFKA_NODE_ID: 3
+      KAFKA_HEAP_OPTS: "-Xms256M -Xmx256M"
       KAFKA_PROCESS_ROLES: 'broker,controller'
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-1:29093,2@kafka-2:29093,3@kafka-3:29093'
       KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093'
@@ -83,12 +86,6 @@ services:
     networks:
       - kafka-network
     depends_on:
-      kafka-1:
-        condition: service_healthy
-      kafka-2:
-        condition: service_healthy
-      kafka-3:
-        condition: service_healthy
       init-kafka:
         condition: service_completed_successfully
 
@@ -104,12 +101,6 @@ services:
     networks:
       - kafka-network
     depends_on:
-      kafka-1:
-        condition: service_healthy
-      kafka-2:
-        condition: service_healthy
-      kafka-3:
-        condition: service_healthy
       init-kafka:
         condition: service_completed_successfully
 
@@ -126,12 +117,6 @@ services:
     networks:
       - kafka-network
     depends_on:
-      kafka-1:
-        condition: service_healthy
-      kafka-2:
-        condition: service_healthy
-      kafka-3:
-        condition: service_healthy
       init-kafka:
         condition: service_completed_successfully
 
@@ -148,12 +133,6 @@ services:
     networks:
       - kafka-network
     depends_on:
-      kafka-1:
-        condition: service_healthy
-      kafka-2:
-        condition: service_healthy
-      kafka-3:
-        condition: service_healthy
       init-kafka:
         condition: service_completed_successfully
 
@@ -167,12 +146,6 @@ services:
     networks:
       - kafka-network
     depends_on:
-      kafka-1:
-        condition: service_healthy
-      kafka-2:
-        condition: service_healthy
-      kafka-3:
-        condition: service_healthy
       init-kafka:
         condition: service_completed_successfully
     ports:

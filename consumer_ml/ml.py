@@ -31,7 +31,7 @@ def process_message(message_value, model, logger):
 
         label = model.predict(features_row)
         
-        probability = model.predict_proba(features_row)[1]
+        probability = model.predict_proba(features_row)[0][1]
 
         processed = {
             'timestamp': time.time(),
