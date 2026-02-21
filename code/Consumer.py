@@ -8,9 +8,12 @@ from kafka.errors import NoBrokersAvailable
 
 
 class Consumer:
-    def __init__(self, logger: logging.Logger, bootstrap_servers: list, input_topic: str):
+    def __init__(self, logger: logging.Logger, bootstrap_servers, input_topic: str):
         self.logger = logger
-        self.bootstrap_servers = bootstrap_servers
+        if isinstance(bootstrap_servers, list):
+            self.bootstrap_servers = bootstrap_servers
+        else:
+            self.bootstrap_servers = [bootstrap_servers]
         self.input_topic = input_topic
         self.running = False
     

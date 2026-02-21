@@ -7,7 +7,7 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 
-from BigData.Lab1.code.Consumer import Consumer
+from code.Consumer import Consumer
 
 def process_message(message_value, logger):
     try:
@@ -37,7 +37,7 @@ def main():
 
     if 'consumer_started' not in st.session_state:
         with st.spinner("Запуск Kafka Consumer..."):
-            consumer = Consumer(logger, [BOOTSTRAP_SERVERS], INPUT_TOPIC)
+            consumer = Consumer(logger, BOOTSTRAP_SERVERS, INPUT_TOPIC)
             consumer_worker = consumer.start(incoming_messages)
             st.session_state.consumer_started = True
             st.session_state.messages = []

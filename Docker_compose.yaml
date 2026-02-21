@@ -15,6 +15,7 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092 
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_DEFAULT_REPLICATION_FACTOR: 3
@@ -29,7 +30,8 @@ services:
     environment:
       KAFKA_BROKER_ID: 2
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_DEFAULT_REPLICATION_FACTOR: 3
       KAFKA_MIN_INSYNC_REPLICAS: 2
@@ -43,7 +45,8 @@ services:
     environment:
       KAFKA_BROKER_ID: 3
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3:9094
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
       KAFKA_DEFAULT_REPLICATION_FACTOR: 3
       KAFKA_MIN_INSYNC_REPLICAS: 2
@@ -53,12 +56,12 @@ services:
   producer-1:
     build: ./producer
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
-      PRODUCER_ID: 1
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
       OUTPUT_TOPIC: raw_data
       DATASET_PATH: /data/data1.csv
     volumes:
       - ./data:/data
+      - ./code:/app/code
     networks:
       - kafka-network
     depends_on:
@@ -69,12 +72,12 @@ services:
   producer-2:
     build: ./producer
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
-      PRODUCER_ID: 2
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
       OUTPUT_TOPIC: raw_data
       DATASET_PATH: /data/data2.csv
     volumes:
       - ./data:/data
+      - ./code:/app/code
     networks:
       - kafka-network
     depends_on:
@@ -85,12 +88,13 @@ services:
   consumer-preprocess:
     build: ./consumer_preprocess
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
       INPUT_TOPIC: raw_data
       OUTPUT_TOPIC: raw_preprocessed
       SCALER_PATH: /scaler/scaler.pkl
     volumes:
       - ./scaler:/scaler
+      - ./code:/app/code
     networks:
       - kafka-network
     depends_on:
@@ -101,12 +105,13 @@ services:
   consumer-ml:
     build: ./consumer_ml
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
       MODEL_PATH: /model/model.pkl
-      INPUT_TOPIC: raw_data
+      INPUT_TOPIC: raw_preprocessed
       OUTPUT_TOPIC: ready_data
     volumes:
       - ./model:/model
+      - ./code:/app/code
     networks:
       - kafka-network
     depends_on:
@@ -117,8 +122,10 @@ services:
   consumer-dashboard:
     build: ./consumer_dashboard
     environment:
-      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9093,kafka-3:9094
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092,kafka-3:9092
       INPUT_TOPIC: ready_data
+    volumes:
+      - ./code:/app/code
     networks:
       - kafka-network
     depends_on:
@@ -126,9 +133,8 @@ services:
       - kafka-2
       - kafka-3
     ports:
-      - "8501:8501"   # Streamlit
+      - "8501:8501"
 
-  # Опционально: сервис для создания топиков с разными параметрами
   init-kafka:
     image: confluentinc/cp-kafka:latest
     depends_on:
@@ -140,10 +146,9 @@ services:
       "
       echo 'Waiting for Kafka to be ready...'
       cub kafka-ready -b kafka-1:9092 1 30
-      # Создаём топики с разными replication factor и min.insync.replicas
-      kafka-topics --bootstrap-server kafka-1:9092 --create --topic raw-data --partitions 3 --replication-factor 3 --config min.insync.replicas=2
-      kafka-topics --bootstrap-server kafka-1:9092 --create --topic processed-data --partitions 3 --replication-factor 3 --config min.insync.replicas=2
-      kafka-topics --bootstrap-server kafka-1:9092 --create --topic predictions --partitions 3 --replication-factor 3 --config min.insync.replicas=2
+      kafka-topics --bootstrap-server kafka-1:9092 --create --topic raw_data --partitions 3 --replication-factor 3 --config min.insync.replicas=2
+      kafka-topics --bootstrap-server kafka-1:9092 --create --topic raw_processed --partitions 3 --replication-factor 3 --config min.insync.replicas=2
+      kafka-topics --bootstrap-server kafka-1:9092 --create --topic ready_data --partitions 3 --replication-factor 3 --config min.insync.replicas=2
       echo 'Topics created.'
       "
     networks:

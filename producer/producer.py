@@ -5,7 +5,7 @@ import random
 import time
 import pandas as pd
 
-from BigData.Lab1.code.Producer import Producer
+from code.Producer import Producer
 
 def load_dataset(path, logger):
     try:
@@ -32,7 +32,7 @@ def main():
 
     outcoming_messages = Queue()
     
-    producer = Producer(logger, [BOOTSTRAP_SERVERS], OUTPUT_TOPIC)
+    producer = Producer(logger, BOOTSTRAP_SERVERS, OUTPUT_TOPIC)
     producer_worker = producer.start(outcoming_messages)
 
     df = load_dataset(DATASET_PATH, logger)

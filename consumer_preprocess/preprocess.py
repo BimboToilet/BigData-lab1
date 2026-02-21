@@ -7,8 +7,8 @@ from datetime import datetime
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
 
-from BigData.Lab1.code.Consumer import Consumer
-from BigData.Lab1.code.Producer import Producer
+from code.Consumer import Consumer
+from code.Producer import Producer
 
 def load_scaler(path, logger):
     try:
@@ -69,9 +69,9 @@ def main():
     incoming_messages = Queue()
     outcoming_messages = Queue()
 
-    consumer = Consumer(logger, [BOOTSTRAP_SERVERS], INPUT_TOPIC)
+    consumer = Consumer(logger, BOOTSTRAP_SERVERS, INPUT_TOPIC)
     consumer_worker = consumer.start(incoming_messages)
-    producer = Producer(logger, [BOOTSTRAP_SERVERS], OUTPUT_TOPIC)
+    producer = Producer(logger, BOOTSTRAP_SERVERS, OUTPUT_TOPIC)
     producer_worker = producer.start(outcoming_messages)
 
     try:

@@ -8,10 +8,13 @@ from kafka.errors import NoBrokersAvailable
 
 
 class Producer:
-    def __init__(self, logger: logging.Logger, bootstrap_servers: list, output_topic: str):
+    def __init__(self, logger: logging.Logger, bootstrap_servers, output_topic: str):
         self.logger = logger
         self.output_topic = output_topic
-        self.bootstrap_servers = bootstrap_servers
+        if isinstance(bootstrap_servers, list):
+            self.bootstrap_servers = bootstrap_servers
+        else:
+            self.bootstrap_servers = [bootstrap_servers]
         self.running = False
     
     def __create_producer(self, retries = 5):
