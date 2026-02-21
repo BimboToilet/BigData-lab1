@@ -1,6 +1,12 @@
 services:
   kafka-1:
     image: confluentinc/cp-kafka:latest
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: 'broker,controller'
@@ -19,6 +25,12 @@ services:
 
   kafka-2:
     image: confluentinc/cp-kafka:latest
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     environment:
       KAFKA_NODE_ID: 2
       KAFKA_PROCESS_ROLES: 'broker,controller'
@@ -37,6 +49,12 @@ services:
 
   kafka-3:
     image: confluentinc/cp-kafka:latest
+    healthcheck:
+      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     environment:
       KAFKA_NODE_ID: 3
       KAFKA_PROCESS_ROLES: 'broker,controller'
@@ -65,9 +83,14 @@ services:
     networks:
       - kafka-network
     depends_on:
-      - kafka-1
-      - kafka-2
-      - kafka-3
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+      init-kafka:
+        condition: service_completed_successfully
 
   producer-2:
     build: ./producer
@@ -81,9 +104,14 @@ services:
     networks:
       - kafka-network
     depends_on:
-      - kafka-1
-      - kafka-2
-      - kafka-3
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+      init-kafka:
+        condition: service_completed_successfully
 
   consumer-preprocess:
     build: ./consumer_preprocess
@@ -98,9 +126,14 @@ services:
     networks:
       - kafka-network
     depends_on:
-      - kafka-1
-      - kafka-2
-      - kafka-3
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+      init-kafka:
+        condition: service_completed_successfully
 
   consumer-ml:
     build: ./consumer_ml
@@ -115,9 +148,14 @@ services:
     networks:
       - kafka-network
     depends_on:
-      - kafka-1
-      - kafka-2
-      - kafka-3
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+      init-kafka:
+        condition: service_completed_successfully
 
   consumer-dashboard:
     build: ./consumer_dashboard
@@ -129,24 +167,28 @@ services:
     networks:
       - kafka-network
     depends_on:
-      - kafka-1
-      - kafka-2
-      - kafka-3
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+      init-kafka:
+        condition: service_completed_successfully
     ports:
       - "8501:8501"
 
   init-kafka:
     image: confluentinc/cp-kafka:latest
     depends_on:
-      - kafka-1
-      - kafka-2
-      - kafka-3
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
     entrypoint: [ "/bin/sh", "-c" ]
     command: |
-      echo 'Waiting for Kafka to be ready...'
-      until kafka-topics --bootstrap-server kafka-1:9092 --list; do
-        sleep 2
-      done
       echo 'Creating topics...'
       kafka-topics --bootstrap-server kafka-1:9092 --create --if-not-exists --topic raw_data --partitions 3 --replication-factor 3 --config min.insync.replicas=2
       kafka-topics --bootstrap-server kafka-1:9092 --create --if-not-exists --topic raw_preprocessed --partitions 3 --replication-factor 3 --config min.insync.replicas=2

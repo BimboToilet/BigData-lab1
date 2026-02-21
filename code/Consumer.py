@@ -20,7 +20,7 @@ class Consumer:
     def __create_consumer(self, retries = 5):
         for i in range(retries):
             try:
-                self.consumer = KafkaConsumer(
+                consumer = KafkaConsumer(
                     self.input_topic,
                     bootstrap_servers=self.bootstrap_servers,
                     value_deserializer=lambda m: json.loads(m.decode('utf-8')),
@@ -29,17 +29,19 @@ class Consumer:
                     max_poll_records=100
                 )
                 self.logger.info("Consumer создан")
-                return
+                return consumer
             except NoBrokersAvailable:
                 self.logger.warning(f"Не найдены доступные брокеры, попытка: {i+1}/{retries}")
                 time.sleep(5)
-        raise Exception("Не удалось связаться с брокерами")
+        return None
     
     def start(self, incoming_messages):
         self.consumer = self.__create_consumer()
+        if self.consumer is None:
+            raise Exception("Consumer не создан")
         thread = threading.Thread(
             target=self.work, 
-            args=(incoming_messages), 
+            args=(incoming_messages,), 
             daemon=False
         )
         self.running = True

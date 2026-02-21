@@ -20,7 +20,7 @@ class Producer:
     def __create_producer(self, retries = 5):
         for i in range(retries):
             try:
-                self.producer = KafkaProducer(
+                producer = KafkaProducer(
                     bootstrap_servers=self.bootstrap_servers,
                     value_serializer=lambda v: json.dumps(v).encode('utf-8'),
                     acks='all',
@@ -28,11 +28,11 @@ class Producer:
                     max_in_flight_requests_per_connection=1,
                 )
                 self.logger.info("Producer создан")
-                return
+                return producer
             except NoBrokersAvailable:
                 self.logger.warning(f"Не найдены доступные брокеры, попытка: {i+1}/{retries}")
                 time.sleep(5)
-        raise Exception("Не удалось связаться с брокерами")
+        return None
     
     def on_success(self, metadata):
         self.logger.debug(f"Доставлено: {metadata.topic} [{metadata.partition}]")
@@ -42,9 +42,11 @@ class Producer:
 
     def start(self, outcoming_messages):
         self.producer = self.__create_producer()
+        if self.producer is None:
+            raise Exception("Producer не создан")
         thread = threading.Thread(
             target=self.work, 
-            args=(outcoming_messages), 
+            args=(outcoming_messages,), 
             daemon=False
         )
         self.running = True
