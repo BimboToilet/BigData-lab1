@@ -1,4 +1,4 @@
-kafka
+kafka-python-ng
 pandas
 numpy
 scikit-learn
