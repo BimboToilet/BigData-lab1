@@ -56,7 +56,7 @@ class Consumer:
             for message in self.consumer:
                 try:
                     msg_value = message.value
-                    self.logger.debug(f"Получено сообщение: {msg_value}")
+                    self.logger.info(f"Получено сообщение")
                     incoming_messages.put(msg_value)
                     if not self.running:
                         break

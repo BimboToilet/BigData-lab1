@@ -13,10 +13,10 @@ def process_message(message_value, logger):
     try:
         features = message_value.get('features')
         message_value.pop('features')
-        processed = pd.DataFrame.from_dict(message_value | features)
+        processed = message_value | features
         return processed
     except Exception as e:
-        logger.error(f"Ошибка во время инференса модели: {e}, сообщение: {message_value}")
+        logger.error(f"Ошибка во время обработки сообщения: {e}, сообщение: {message_value}")
         return None
 
 def main():
@@ -40,7 +40,7 @@ def main():
             consumer = Consumer(logger, BOOTSTRAP_SERVERS, INPUT_TOPIC)
             consumer_worker = consumer.start(incoming_messages)
             st.session_state.consumer_started = True
-            st.session_state.messages = []
+            st.session_state.raw_messages = []
             st.success("Consumer запущен")
 
     st.sidebar.header("Настройки отображения")
@@ -56,26 +56,26 @@ def main():
                 try:
                     msg = incoming_messages.get_nowait()
                     msg = process_message(msg, logger)
-                    st.session_state.messages.append(msg)
-                    new_count += 1
+                    st.session_state.raw_messages.append(msg)
+                    message_count += 1
                 except queue.Empty:
                     break
 
             if message_count > 0:
                 st.sidebar.info(f"Получено новых сообщений: {message_count}")
 
-            if len(st.session_state.messages) > max_messages:
-                st.session_state.messages = st.session_state.messages[-max_messages:]
+            if len(st.session_state.raw_messages) > max_messages:
+                st.session_state.raw_messages = st.session_state.raw_messages[-max_messages:]
 
-            if st.session_state.messages:
-                df = pd.DataFrame(st.session_state.messages)
+            if st.session_state.raw_messages:
+                df = pd.DataFrame(st.session_state.raw_messages)
 
                 if 'timestamp' in df.columns:
                     df['datetime'] = pd.to_datetime(df['timestamp'], unit='s')
                 else:
                     df['datetime'] = pd.Timestamp.now()
 
-                total_msgs = len(st.session_state.messages)
+                total_msgs = len(st.session_state.raw_messages)
                 unique_preds = df['label'].nunique() if 'label' in df else 0
 
                 with placeholder.container():
@@ -86,24 +86,32 @@ def main():
 
                     st.markdown("---")
 
-                    col_left, col_right = st.columns(2)
+                    col_left, col_middle, col_right = st.columns(3)
 
                     with col_left:
                         st.subheader("Распределение предсказаний")
                         if 'label' in df.columns:
                             fig_pie = px.pie(df, names='label', title='Классы предсказаний')
-                            st.plotly_chart(fig_pie, use_container_width=True)
+                            st.plotly_chart(fig_pie, config={}, width='stretch')
                         else:
                             st.warning("Нет данных о предсказаниях")
 
+                    with col_middle:
+                        st.subheader("Распределение producer")
+                        if 'producer_id' in df.columns:
+                            fig_pie = px.pie(df, names='producer_id', title='Producer ID')
+                            st.plotly_chart(fig_pie, config={}, width='stretch')
+                        else:
+                            st.warning("Нет данных о producer")
+
                     with col_right:
                         st.subheader("Динамика предсказаний во времени")
-                        if 'datetime' in df.columns and 'label' in df.columns:
+                        if 'datetime' in df.columns and 'probability' in df.columns:
                             fig_scatter = px.scatter(
-                                df, x='datetime', y='label', title='Предсказания по времени',
-                                labels={'label': 'Класс'}
+                                df, x='datetime', y='probability', title='Вероятности по времени',
+                                labels={'probability': 'Вероятность', 'datetime': 'Время'}
                             )
-                            st.plotly_chart(fig_scatter, use_container_width=True)
+                            st.plotly_chart(fig_scatter, config={}, width='stretch')
                         else:
                             st.warning("Недостаточно данных для временного ряда")
 
@@ -113,7 +121,7 @@ def main():
                     cols_to_show = df.columns
                     st.dataframe(
                         df[cols_to_show].sort_values('datetime', ascending=False).head(20),
-                        use_container_width=True
+                        width='stretch'
                     )
             else:
                 with placeholder.container():

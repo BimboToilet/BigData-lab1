@@ -23,6 +23,7 @@ def main():
     DATASET_PATH = os.getenv('DATASET_PATH', '/data/data1.csv')
     BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'kafka-1:9092').split(',')
     OUTPUT_TOPIC = os.getenv('OUTPUT_TOPIC', 'raw_data')
+    PRODUCER_ID = os.getenv('PRODUCER_ID', '1')
 
     SLEEP_MIN = 0.01
     SLEEP_MAX = 0.1
@@ -39,10 +40,10 @@ def main():
 
     try:
         while True:
-            for idx, record in enumerate(df.to_dict(orient='records')):
+            for _, record in enumerate(df.to_dict(orient='records')):
                 message = {
                     'timestamp': time.time(),
-                    'record_id': idx,
+                    'producer_id': PRODUCER_ID,
                     'features': record,
                 }
                 outcoming_messages.put(message)

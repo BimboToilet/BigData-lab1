@@ -1,3 +1,4 @@
+import copy
 import os
 from queue import Queue
 import time
@@ -26,8 +27,10 @@ def extract_hour(date_str):
 
 def process_message(message_value, scaler, logger):
     try:
-        idx = message_value.get('record_id')
-        features = message_value.get('features')
+        id = message_value.get('producer_id')
+        original_features = message_value.get('features')
+
+        features = copy.deepcopy(original_features)
 
         if features is None:
             raise ValueError("Нет признаков")
@@ -42,8 +45,9 @@ def process_message(message_value, scaler, logger):
 
         processed = {
             'timestamp': time.time(),
-            'record_id': idx,
-            'features': features
+            'producer_id': id,
+            'features': features,
+            'original_features': original_features
         }
 
         return processed

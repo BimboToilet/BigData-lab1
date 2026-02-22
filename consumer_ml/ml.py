@@ -21,24 +21,25 @@ def load_model(path, logger):
 
 def process_message(message_value, model, logger):
     try:
-        idx = message_value.get('record_id')
+        id = message_value.get('producer_id')
         features = message_value.get('features')
+        original_features = message_value.get('original_features')
 
         if features is None:
             raise ValueError("Нет признаков")
 
         features_row = pd.DataFrame([features])
 
-        label = model.predict(features_row)
+        label = int(model.predict(features_row)[0])
         
-        probability = model.predict_proba(features_row)[0][1]
+        probability = float(model.predict_proba(features_row)[0][1])
 
         processed = {
             'timestamp': time.time(),
-            'record_id': idx,
+            'producer_id': id,
             'label': label,
             'probability': probability,
-            'features': features
+            'features': original_features
         }
 
         return processed
