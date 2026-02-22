@@ -70,10 +70,8 @@ def main():
             if st.session_state.raw_messages:
                 df = pd.DataFrame(st.session_state.raw_messages)
 
-                if 'timestamp' in df.columns:
-                    df['datetime'] = pd.to_datetime(df['timestamp'], unit='s')
-                else:
-                    df['datetime'] = pd.Timestamp.now()
+                if 'date' not in df.columns:
+                    df['date'] = pd.Timestamp.now()
 
                 total_msgs = len(st.session_state.raw_messages)
                 unique_preds = df['label'].nunique() if 'label' in df else 0
@@ -92,7 +90,7 @@ def main():
                         st.subheader("Распределение предсказаний")
                         if 'label' in df.columns:
                             fig_pie = px.pie(df, names='label', title='Классы предсказаний')
-                            st.plotly_chart(fig_pie, config={}, width='stretch')
+                            st.plotly_chart(fig_pie)
                         else:
                             st.warning("Нет данных о предсказаниях")
 
@@ -100,18 +98,18 @@ def main():
                         st.subheader("Распределение producer")
                         if 'producer_id' in df.columns:
                             fig_pie = px.pie(df, names='producer_id', title='Producer ID')
-                            st.plotly_chart(fig_pie, config={}, width='stretch')
+                            st.plotly_chart(fig_pie)
                         else:
                             st.warning("Нет данных о producer")
 
                     with col_right:
                         st.subheader("Динамика предсказаний во времени")
-                        if 'datetime' in df.columns and 'probability' in df.columns:
+                        if 'date' in df.columns and 'probability' in df.columns:
                             fig_scatter = px.scatter(
-                                df, x='datetime', y='probability', title='Вероятности по времени',
-                                labels={'probability': 'Вероятность', 'datetime': 'Время'}
+                                df, x='date', y='probability', title='Вероятности по времени',
+                                labels={'probability': 'Вероятность', 'date': 'Время'}
                             )
-                            st.plotly_chart(fig_scatter, config={}, width='stretch')
+                            st.plotly_chart(fig_scatter)
                         else:
                             st.warning("Недостаточно данных для временного ряда")
 
@@ -120,7 +118,7 @@ def main():
                     st.subheader(f"Последние {len(df)} записей")
                     cols_to_show = df.columns
                     st.dataframe(
-                        df[cols_to_show].sort_values('datetime', ascending=False).head(20),
+                        df[cols_to_show].sort_values('date', ascending=False).head(20),
                         width='stretch'
                     )
             else:
