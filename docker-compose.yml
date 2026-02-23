@@ -164,11 +164,13 @@ services:
         condition: service_healthy
     entrypoint: [ "/bin/sh", "-c" ]
     command: |
+      "
       echo 'Creating topics...'
       kafka-topics --bootstrap-server kafka-1:9092 --create --if-not-exists --topic raw_data --partitions 3 --replication-factor 3 --config min.insync.replicas=2
       kafka-topics --bootstrap-server kafka-1:9092 --create --if-not-exists --topic raw_preprocessed --partitions 3 --replication-factor 3 --config min.insync.replicas=2
       kafka-topics --bootstrap-server kafka-1:9092 --create --if-not-exists --topic ready_data --partitions 3 --replication-factor 3 --config min.insync.replicas=2
       echo 'Topics created.'
+      "
     networks:
       - kafka-network
 

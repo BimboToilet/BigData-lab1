@@ -3,6 +3,7 @@ from queue import Queue
 import queue
 import time
 import logging
+import uuid
 import pandas as pd
 import streamlit as st
 import plotly.express as px
@@ -57,6 +58,7 @@ def main():
                     msg = incoming_messages.get_nowait()
                     msg = process_message(msg, logger)
                     st.session_state.raw_messages.append(msg)
+                    msg['received_at'] = pd.Timestamp.now()
                     message_count += 1
                 except queue.Empty:
                     break
@@ -90,7 +92,7 @@ def main():
                         st.subheader("Распределение предсказаний")
                         if 'label' in df.columns:
                             fig_pie = px.pie(df, names='label', title='Классы предсказаний')
-                            st.plotly_chart(fig_pie)
+                            st.plotly_chart(fig_pie, key = uuid.uuid4())
                         else:
                             st.warning("Нет данных о предсказаниях")
 
@@ -98,7 +100,7 @@ def main():
                         st.subheader("Распределение producer")
                         if 'producer_id' in df.columns:
                             fig_pie = px.pie(df, names='producer_id', title='Producer ID')
-                            st.plotly_chart(fig_pie)
+                            st.plotly_chart(fig_pie, key = uuid.uuid4())
                         else:
                             st.warning("Нет данных о producer")
 
@@ -109,14 +111,31 @@ def main():
                                 df, x='date', y='probability', title='Вероятности по времени',
                                 labels={'probability': 'Вероятность', 'date': 'Время'}
                             )
-                            st.plotly_chart(fig_scatter)
+                            st.plotly_chart(fig_scatter, key = uuid.uuid4())
                         else:
                             st.warning("Недостаточно данных для временного ряда")
 
                     st.markdown("---")
 
+                    st.markdown("Интенсивность сообщений в секунду")
+                    if 'received_at' in df.columns:
+                        df['received_at'] = pd.to_datetime(df['received_at'])
+                        df['second'] = df['received_at'].dt.floor('s')
+                        intensity_df = df.groupby('second').size().reset_index(name='count')
+                        fig_intensity = px.bar(
+                            intensity_df,
+                            x='second',
+                            y='count',
+                            title='Количество сообщений в секунду',
+                            labels={'second': 'Время', 'count': 'Сообщений в секунду'}
+                        )
+                        st.plotly_chart(fig_intensity, key = uuid.uuid4())
+                    else:
+                        st.warning("Нет данных о времени получения сообщений")
+
                     st.subheader(f"Последние {len(df)} записей")
-                    cols_to_show = df.columns
+                    exclude_cols = ['received_at', 'second']
+                    cols_to_show = [col for col in df.columns if col not in exclude_cols]
                     st.dataframe(
                         df[cols_to_show].sort_values('date', ascending=False).head(20),
                         width='stretch'
